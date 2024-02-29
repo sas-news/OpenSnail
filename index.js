@@ -175,7 +175,7 @@ app.get('/auth/discord/callback', async (req, res) => {
     res.send(htmlResponse);
   } catch (error) {
     console.error('Error during Discord authentication:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message });
   }
 });
 

@@ -133,7 +133,7 @@ app.get('/auth/discord/callback', async (req, res) => {
       client_secret: CLIENT_SECRET,
       code,
       grant_type: 'authorization_code',
-      redirect_uri: APP_URL
+      redirect_uri: `${APP_URL}/auth/discord/callback`
     }), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'

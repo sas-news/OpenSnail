@@ -34,7 +34,7 @@ class DiscordAuth {
 
     async auth({ width, height }) {
         return new Promise((resolve, reject) => {
-            const URL = "https://opensnail.onrender.com";
+            const URL = "Your/server/URL/here";
             let top = (screen.height - height) / 2;
             let left = (screen.width - width) / 2;
             const authWindow = window.open(

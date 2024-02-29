@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000; // Use PORT environment variable if avail
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URL = process.env.REDIRECT_URL;
+const APP_URL = process.env.APP_URL;
 
 app.use(cors());
 
@@ -88,7 +88,7 @@ app.post('/api/upload', upload.single('extension'), (req, res) => {
   };
 
   // Return the URL to the uploaded extension
-  const extensionURL = `${REDIRECT_URL}/api/download/${fileName}`;
+  const extensionURL = `${APP_URL}/api/download/${fileName}`;
   res.send(extensionURL);
 });
 
@@ -121,7 +121,7 @@ setInterval(() => {
 
 // Route to initiate the OAuth2 flow
 app.get('/auth/discord', (req, res) => {
-  res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&REDIRECT_URL=${encodeURIComponent(REDIRECT_URL+"/auth/discord/callback")}&response_type=code&scope=identify`);
+  res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(APP_URL+"/auth/discord/callback")}&response_type=code&scope=identify`);
 });
 
 // Route to handle callback from Discord OAuth2
@@ -133,7 +133,7 @@ app.get('/auth/discord/callback', async (req, res) => {
       client_secret: CLIENT_SECRET,
       code,
       grant_type: 'authorization_code',
-      REDIRECT_URL: REDIRECT_URL
+      APP_URL: APP_URL
     }), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'

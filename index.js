@@ -35,6 +35,7 @@ function requestLogger(req, res, next) {
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
+  limits: { fileSize: 1024 * 1024 }, // 1MB is plenty for an extension file; uploads are held in memory
   fileFilter: (req, file, cb) => {
     // Check if the file extension is .js
     if (path.extname(file.originalname).toLowerCase() === '.js') {
@@ -70,9 +71,9 @@ app.post('/api/upload', upload.single('extension'), (req, res) => {
     return res.status(400).send('No file or extension name provided.');
   }
 
-  // Check if extension name contains spaces
-  if (extensionName.includes(' ')) {
-    return res.status(400).send('Extension name cannot contain spaces.');
+  // Only allow characters that are safe in a URL path and a Content-Disposition header
+  if (!/^[\w-]+$/.test(extensionName)) {
+    return res.status(400).send('Extension name can only contain letters, numbers, underscores, and hyphens.');
   }
   
   // Generate a random code for the file name
@@ -119,8 +120,19 @@ setInterval(() => {
 
 // Discord
 
+// Build the CDN avatar URL, falling back to a default avatar when the user has none
+const avatarUrl = (user) => {
+  if (!user.avatar) {
+    return `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(user.id) >> 22n) % 6}.png`;
+  }
+  const format = user.avatar.startsWith('a_') ? 'gif' : 'png';
+  return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${format}`;
+};
+
 // Route to initiate the OAuth2 flow
 app.get('/auth/discord', (req, res) => {
+  // Clear the previous token so a cancelled auth can't leak the last user's data
+  accessToken = '';
   res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(APP_URL+"/auth/discord/callback")}&response_type=code&scope=identify`);
 });
 
@@ -151,7 +163,7 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     const userData = {
       username: userResponse.data.username,
-      profile_picture: `https://cdn.discordapp.com/avatars/${userResponse.data.id}/${userResponse.data.avatar}.png`,
+      profile_picture: avatarUrl(userResponse.data),
       auth_token: accessToken
     };
 
@@ -197,7 +209,7 @@ app.get('/api/userdata', async (req, res) => {
     // Extract relevant user data
     const userData = {
       username: userResponse.data.username,
-      profile_picture: `https://cdn.discordapp.com/avatars/${userResponse.data.id}/${userResponse.data.avatar}.png`
+      profile_picture: avatarUrl(userResponse.data)
     };
 
     // Return the user data as JSON response
@@ -206,6 +218,14 @@ app.get('/api/userdata', async (req, res) => {
     console.error('Error fetching user data:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Return a clean error instead of a stack trace when an upload fails
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400).send(err.message);
+  }
+  res.status(400).send(err.message || 'Upload failed.');
 });
 
 app.listen(port, () => {

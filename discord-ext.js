@@ -32,7 +32,7 @@ class DiscordAuth {
         };
     }
 
-    async auth({ width, height }) {
+    async auth({ width = 600, height = 750 } = {}) {
         return new Promise((resolve, reject) => {
             const URL = "Your app URL here";
             let top = (screen.height - height) / 2;
@@ -42,6 +42,11 @@ class DiscordAuth {
                 'Discord Auth',
                 `scrollbars=1,resizable=no,width=${width},height=${height},top=${top},left=${left}`
             );
+
+            if (!authWindow) {
+                reject(new Error('Popup was blocked. Please allow popups and try again.'));
+                return;
+            }
 
             const intervalId = setInterval(async () => {
                 if (authWindow.closed) {
